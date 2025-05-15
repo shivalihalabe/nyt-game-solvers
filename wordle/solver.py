@@ -37,8 +37,33 @@ class WordleSolver:
     
     def _matches_pattern(self, word, guess, result):
         """Check if a word matches the guess pattern"""
-        # TODO: implement the matching logic
-        return True  # placeholder
+        # green letters (2) - must be in exact position
+        for i, (g_letter, r) in enumerate(zip(guess, result)):
+            if r == '2':
+                if word[i] != g_letter:
+                    return False
+        
+        # yellow letters (1) - must be in word but in different position
+        for i, (g_letter, r) in enumerate(zip(guess, result)):
+            if r == '1':
+                if g_letter not in word:
+                    return False
+                if word[i] == g_letter:
+                    return False
+        
+        # gray letters (0) - must not be in word unless they appear elsewhere as yellow or green
+        for i, (g_letter, r) in enumerate(zip(guess, result)):
+            if r == '0':
+                # count how many times letter appears as yellow or green
+                required_count = sum(1 for j, r2 in enumerate(result) 
+                                    if guess[j] == g_letter and r2 in ['1', '2'])
+                # count how many times letter appears in candidate word
+                actual_count = word.count(g_letter)
+                
+                if actual_count > required_count:
+                    return False
+    
+        return True
     
     def get_best_guess(self):
         """Get the best next guess"""
