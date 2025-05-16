@@ -56,7 +56,7 @@ def main():
         
         # check if won
         if result == "22222":
-            print(f"\n🎉 Congratulations! Solved in {attempt} guesses.")
+            print(f"\nCongratulations! Solved in {attempt} guesses.")
             break
         
         # update solver
