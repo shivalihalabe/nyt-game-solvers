@@ -1,19 +1,20 @@
 """
 Wordle solver
 """
-from .wordlist import load_wordlist, load_valid_guesses
 from collections import Counter
+from pathlib import Path
 import math
+
+def load_wordlist():
+    """Load the full Wordle answer list."""
+    answers_file = Path(__file__).parent / "answers.txt"
+    with open(answers_file, 'r') as f:
+        return [word.strip().lower() for word in f.readlines()]
 
 
 class WordleSolver:
     def __init__(self, wordlist=None, hard_mode=False):
-        """Initialize solver
-        
-        Parameters:
-            wordlist: list of possible answer words
-            hard_mode: if True, guesses must use all revealed clues
-        """
+        """Initialize solver"""
         self.wordlist = wordlist or load_wordlist()
         self.possible_words = self.wordlist.copy()
         self.guesses = []
@@ -24,13 +25,9 @@ class WordleSolver:
     def update(self, guess, result):
         """
         Update possible words based on guess result
-        
-        Parameters:
-            guess: the guessed word (e.g., "plate")
-            result: result string using 0, 1, 2
-                    0 = letter not in word (gray)
-                    1 = letter in word, wrong position (yellow)
-                    2 = letter in correct position (green)
+        0 = letter not in word (gray)
+        1 = letter in word, wrong position (yellow)
+        2 = letter in correct position (green)
         """
         self.guesses.append((guess, result))
 
@@ -103,7 +100,7 @@ class WordleSolver:
         if self.hard_mode:
             candidates = self._get_hard_mode_candidates()
         else:
-            candidates = self.possible_words[:100] if len(self.possible_words) > 100 else self.possible_words
+            candidates = self._get_smart_candidates(100)
 
         # calculate entropy for each possible guess
         best_guess = None
@@ -160,9 +157,9 @@ class WordleSolver:
     def get_possible_words(self):
         """Return remaining possible words"""
         return self.possible_words
-    
+
     def _get_hard_mode_candidates(self):
-        """Get valid words for hard mode (must use revealed clues)"""
+        """Get valid candidates for hard mode (must use revealed clues)"""
         candidates = []
         
         for word in self.possible_words:
@@ -173,7 +170,7 @@ class WordleSolver:
                     valid = False
                     break
             
-            # check if word contains all yellow letters
+            # check if word uses all yellow letters
             if valid:
                 for letter in self.yellow_letters:
                     if letter not in word:
@@ -183,4 +180,24 @@ class WordleSolver:
             if valid:
                 candidates.append(word)
         
-        return candidates[:100] if len(candidates) > 100 else candidates
+        scored_words = sorted(candidates, key=self._score_words, reverse=True)
+        return scored_words[:100]
+        
+    def _get_smart_candidates(self, max_candidates=100):
+        """Get words prioritized by common letters in Wordle answers"""
+        if len(self.possible_words) <= max_candidates:
+            return self.possible_words
+        
+        scored_words = sorted(self.possible_words, key=self._score_words, reverse=True)
+        return scored_words[:max_candidates]
+
+    def _score_words(self, word):
+        """Score word based on common letter frequencies in Wordle"""
+        common_letters = 'earotlisncuydhpmgbfkwvzxqj'
+        score = 0
+        seen = set()
+        for letter in word:
+            if letter not in seen:
+                score += (26 - common_letters.index(letter))
+                seen.add(letter)
+        return score

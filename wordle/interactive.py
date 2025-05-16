@@ -1,5 +1,5 @@
 """
-Interactive Wordle helper to use while playing Wordle
+Interactive helper to use while playing Wordle
 """
 from .solver import WordleSolver
 
