@@ -70,7 +70,7 @@ class WordleSolver:
     def get_best_guess(self):
         """Get the best next guess using entropy"""
         if not self.guesses:
-            return "plate"  # best starting word
+            return "plate"  # Wordle Bot's starting word
         
         if len(self.possible_words) == 1:
             return self.possible_words[0]
