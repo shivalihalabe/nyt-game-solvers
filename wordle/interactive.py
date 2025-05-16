@@ -27,7 +27,14 @@ def main():
     print("\nI'll suggest guesses while you play Wordle.")
     print("After each guess, tell me about your result.\n")
     
-    solver = WordleSolver()
+    # ask about hard mode
+    hard_mode_input = input("Playing on hard mode? (y/n): ").strip().lower()
+    hard_mode = hard_mode_input == 'y'
+
+    if hard_mode:
+        print("Hard mode enabled. Your guesses must use revealed clues.\n")
+
+    solver = WordleSolver(hard_mode=hard_mode)
     attempt = 0
     max_attempts = 6
     

@@ -7,24 +7,41 @@ import math
 
 
 class WordleSolver:
-    def __init__(self, wordlist=None):
-        """Initialize solver"""
+    def __init__(self, wordlist=None, hard_mode=False):
+        """Initialize solver
+        
+        Parameters:
+            wordlist: list of possible answer words
+            hard_mode: if True, guesses must use all revealed clues
+        """
         self.wordlist = wordlist or load_wordlist()
         self.possible_words = self.wordlist.copy()
         self.guesses = []
+        self.hard_mode = hard_mode
+        self.green_letters = {}  # position -> letter
+        self.yellow_letters = set()  # letters that must be included
         
     def update(self, guess, result):
         """
         Update possible words based on guess result
         
         Parameters:
-            guess: The guessed word (e.g., "plate")
-            result: Result string using 0, 1, 2
+            guess: the guessed word (e.g., "plate")
+            result: result string using 0, 1, 2
                     0 = letter not in word (gray)
                     1 = letter in word, wrong position (yellow)
                     2 = letter in correct position (green)
         """
         self.guesses.append((guess, result))
+
+        # track green and yellow letters for hard mode
+        if self.hard_mode:
+            for i, (letter, r) in enumerate(zip(guess, result)):
+                if r == '2':
+                    self.green_letters[i] = letter
+                elif r == '1':
+                    self.yellow_letters.add(letter)
+
         self.possible_words = self._filter_words(guess, result)
         
     def _filter_words(self, guess, result):
@@ -82,12 +99,15 @@ class WordleSolver:
         if len(self.possible_words) <= 2:
             return self.possible_words[0]
         
+        # in hard mode, only consider guesses that satisfy constraints
+        if self.hard_mode:
+            candidates = self._get_hard_mode_candidates()
+        else:
+            candidates = self.possible_words[:100] if len(self.possible_words) > 100 else self.possible_words
+
         # calculate entropy for each possible guess
         best_guess = None
         best_entropy = -1
-        
-        # limit candidates to check for performance
-        candidates = self.possible_words[:100] if len(self.possible_words) > 100 else self.possible_words
         
         for guess in candidates:
             entropy = self._calculate_entropy(guess)
@@ -140,3 +160,27 @@ class WordleSolver:
     def get_possible_words(self):
         """Return remaining possible words"""
         return self.possible_words
+    
+    def _get_hard_mode_candidates(self):
+        """Get valid words for hard mode (must use revealed clues)"""
+        candidates = []
+        
+        for word in self.possible_words:
+            # check if word uses all green letters in correct positions
+            valid = True
+            for pos, letter in self.green_letters.items():
+                if word[pos] != letter:
+                    valid = False
+                    break
+            
+            # check if word contains all yellow letters
+            if valid:
+                for letter in self.yellow_letters:
+                    if letter not in word:
+                        valid = False
+                        break
+            
+            if valid:
+                candidates.append(word)
+        
+        return candidates[:100] if len(candidates) > 100 else candidates
