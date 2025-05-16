@@ -1,7 +1,9 @@
 """
 Wordle solver
 """
-from .wordlist import load_wordlist
+from .wordlist import load_wordlist, load_valid_guesses
+from collections import Counter
+import math
 
 
 class WordleSolver:
@@ -66,7 +68,7 @@ class WordleSolver:
         return True
     
     def get_best_guess(self):
-        """Get the best next guess"""
+        """Get the best next guess using entropy"""
         if not self.guesses:
             return "plate"  # best starting word
         
@@ -75,9 +77,65 @@ class WordleSolver:
         
         if len(self.possible_words) == 0:
             return None
-            
-        # right now, just returning the first possible word
-        return self.possible_words[0]
+        
+        # if very few words left, just guess one of them
+        if len(self.possible_words) <= 2:
+            return self.possible_words[0]
+        
+        # calculate entropy for each possible guess
+        best_guess = None
+        best_entropy = -1
+        
+        # limit candidates to check for performance
+        candidates = self.possible_words[:100] if len(self.possible_words) > 100 else self.possible_words
+        
+        for guess in candidates:
+            entropy = self._calculate_entropy(guess)
+            if entropy > best_entropy:
+                best_entropy = entropy
+                best_guess = guess
+        
+        return best_guess
+    
+    def _calculate_entropy(self, guess):
+        """Calculate expected information gain from a guess"""
+        # count how many words would give each pattern
+        pattern_counts = Counter()
+        
+        for word in self.possible_words:
+            pattern = self._get_pattern(guess, word)
+            pattern_counts[pattern] += 1
+        
+        # calculate entropy
+        total = len(self.possible_words)
+        entropy = 0
+        
+        for count in pattern_counts.values():
+            if count > 0:
+                probability = count / total
+                entropy -= probability * math.log2(probability)
+        
+        return entropy
+    
+    def _get_pattern(self, guess, answer):
+        """Get pattern that would result from guessing 'guess' when answer is 'answer'"""
+        result = ['0'] * 5
+        answer_letters = list(answer)
+        
+        # first pass: mark greens
+        for i in range(5):
+            if guess[i] == answer[i]:
+                result[i] = '2'
+                answer_letters[i] = None  # Mark as used
+        
+        # second pass: mark yellows
+        for i in range(5):
+            if result[i] == '0' and guess[i] in answer_letters:
+                result[i] = '1'
+                # Remove first occurrence
+                answer_letters[answer_letters.index(guess[i])] = None
+        
+        return ''.join(result)
     
     def get_possible_words(self):
         """Return remaining possible words"""

@@ -1,25 +1,51 @@
-from .solver import WordleSolver
+from wordle.solver import WordleSolver
 
-def main():
+def simulate_game(answer):
+    """Simulate solving a Wordle game"""
     solver = WordleSolver()
     
-    print("Available words:", solver.get_possible_words())
-    print(f"Total words: {len(solver.get_possible_words())}\n")
+    print(f"Solving for answer: {answer}")
+    print(f"Starting with {len(solver.get_possible_words())} possible words\n")
     
-    guess = solver.get_best_guess()
-    print(f"First guess: {guess}")
+    attempts = 0
+    max_attempts = 6
     
-    # simulate entering "crane" when answer is "slate"
-    # c=0 (not in word), r=0 (not in word), a=1 (in word, wrong spot), 
-    # n=0 (not in word), e=2 (correct spot)
-    solver.update("plate", "02222")
+    while attempts < max_attempts:
+        attempts += 1
+        guess = solver.get_best_guess()
+        
+        if guess is None:
+            print("No valid guesses remaining")
+            return False
+        
+        # simulate result
+        result = solver._get_pattern(guess, answer)
+        
+        print(f"Attempt {attempts}: {guess}")
+        print(f"Result: {result}")
+        
+        if result == "22222":
+            print(f"\nSolved in {attempts} guesses")
+            return True
+        
+        solver.update(guess, result)
+        print(f"Remaining possibilities: {len(solver.get_possible_words())}")
+        
+        if len(solver.get_possible_words()) <= 10:
+            print(f"Options: {solver.get_possible_words()}")
+        print()
     
-    print(f"\nAfter guessing 'plate' with result '02222':")
-    print(f"Remaining possible words: {solver.get_possible_words()}")
-    print(f"Count: {len(solver.get_possible_words())}")
+    print(f"Failed to solve. Answer was: {answer}")
+    return False
+
+def main():
+    # test with different words
+    test_words = ["slate", "audio", "crisp", "match", "flame"]
     
-    next_guess = solver.get_best_guess()
-    print(f"\nNext guess: {next_guess}")
+    for word in test_words:
+        print("=" * 50)
+        simulate_game(word)
+        print()
 
 if __name__ == "__main__":
     main()
